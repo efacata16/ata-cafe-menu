@@ -93,21 +93,6 @@ body{font-family:'Nunito',sans-serif;background:var(--krem);color:var(--yazi);pa
 
 <script>
 // ============================================
-// FIREBASE — Adisyon sistemiyle AYNI proje
-// ============================================
-const firebaseConfig = {
-  apiKey: "AIzaSyDsGZAjJZ3IjhVtuF4GcAmSfOS_u0pVpYk",
-  authDomain: "ata-cafe-70457.firebaseapp.com",
-  databaseURL: "https://ata-cafe-70457-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "ata-cafe-70457",
-  storageBucket: "ata-cafe-70457.firebasestorage.app",
-  messagingSenderId: "947405189257",
-  appId: "1:947405189257:web:c46ed7c625177d6d871658"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-
-// ============================================
 // idOlustur — Kasadaki fonksiyonla BİREBİR AYNI olmalı
 // (menuDurum anahtarları bununla üretiliyor)
 // ============================================
@@ -179,7 +164,6 @@ function menuyuCiz(){
   menu.forEach((blok, i)=>{
     const blokId = 'kat-' + i;
 
-    // kategori chip
     const chip = document.createElement('button');
     chip.className = 'kat-chip' + (i===0?' aktif':'');
     chip.textContent = blok.kat;
@@ -190,16 +174,15 @@ function menuyuCiz(){
     };
     serit.appendChild(chip);
 
-    // kategori bloğu
     const div = document.createElement('div');
     div.className = 'kategori-blok';
     div.id = blokId;
     div.dataset.kat = blok.kat;
     let html = `<div class="kategori-baslik">${blok.kat}</div>`;
-    blok.urunler.forEach(u=>{
+    (blok.urunler||[]).forEach(u=>{
       const uid = idOlustur(u.ad);
       html += `
-        <div class="urun-satir" data-uid="${uid}" data-ad="${u.ad.toLowerCase()}">
+        <div class="urun-satir" data-uid="${uid}" data-ad="${(u.ad||'').toLowerCase()}">
           <div class="urun-sol">
             <span class="urun-ad">${u.ad}</span>
             <span class="tukendi-etiket">Tükendi</span>
@@ -229,35 +212,50 @@ function stokUygula(){
 }
 
 // ============================================
-// CANLI MENÜ — kasada "Menü Yönetimi"nden değişiklik olunca anında yansır
+// ARAMA
 // ============================================
-db.ref('menuVeri').on('value', (snap)=>{
-  const veri = snap.val();
-  if(veri){
-    // Firebase array bazen object döner -> normalize et
-    const katlar = Array.isArray(veri) ? veri : Object.values(veri).filter(x=>x);
-    menu = katlar.map(k=>({
-      kat: k.kat || 'Kategori',
-      urunler: (k.urunler ? (Array.isArray(k.urunler) ? k.urunler : Object.values(k.urunler).filter(x=>x)) : [])
-               .map(u=>({ ad:u.ad, fiyat:Number(u.fiyat)||0 }))
-    }));
-  }
-  menuyuCiz();
-  // Arama kutusu doluysa filtreyi koru
-  if(document.getElementById('arama').value) urunAra();
-});
+function urunAra(){
+  const q = document.getElementById('arama').value.toLowerCase().trim();
+  let toplamGorunen = 0;
+  document.querySelectorAll('.kategori-blok').forEach(blok=>{
+    let katGorunen = 0;
+    blok.querySelectorAll('.urun-satir').forEach(satir=>{
+      const eslesti = !q || satir.dataset.ad.includes(q);
+      satir.style.display = eslesti ? 'flex' : 'none';
+      if(eslesti){ katGorunen++; toplamGorunen++; }
+    });
+    blok.style.display = katGorunen>0 ? 'block' : 'none';
+  });
+  document.getElementById('bos-sonuc').style.display = toplamGorunen===0 ? 'block' : 'none';
+}
 
-// ============================================
-// CANLI STOK — kasada stok değişince anında yansır
-// ============================================
-db.ref('menuDurum').on('value', (snap)=>{
-  stokDurumlari = snap.val() || {};
-  stokUygula();
-});
-
-// Bağlantı durumu rozetı
-db.ref('.info/connected').on('value', (snap)=>{
+function rozetGuncelle(durum, metinYazi){
   const rozet = document.getElementById('canli-rozet');
   const metin = document.getElementById('canli-metin');
-  if(snap.val() === true){
-    roz
+  if(durum) rozet.classList.add('bagli'); else rozet.classList.remove('bagli');
+  metin.textContent = metinYazi;
+}
+
+// ============================================
+// ÖNCE menüyü çiz — Firebase'e ulaşılamasa bile müşteri menüyü görür
+// ============================================
+menuyuCiz();
+
+// ============================================
+// FIREBASE — canlı menü + stok. Hata olsa bile menü çalışmaya devam eder.
+// ============================================
+const firebaseConfig = {
+  apiKey: "AIzaSyDsGZAjJZ3IjhVtuF4GcAmSfOS_u0pVpYk",
+  authDomain: "ata-cafe-70457.firebaseapp.com",
+  databaseURL: "https://ata-cafe-70457-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "ata-cafe-70457",
+  storageBucket: "ata-cafe-70457.firebasestorage.app",
+  messagingSenderId: "947405189257",
+  appId: "1:947405189257:web:c46ed7c625177d6d871658"
+};
+
+try {
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  // Canlı menü (kasadaki Menü Yönetimi değişiklikleri)
