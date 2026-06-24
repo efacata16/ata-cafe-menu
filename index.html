@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ata Cafe | Menü</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+
+<!-- Firebase (Adisyon sistemiyle AYNI veritabanı) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+<style>
+:root{
+  --kahve:#6B3A2A; --kahve-acik:#8B5A42; --krem:#FDF6EC;
+  --sari:#F4A832; --sari-acik:#FDEBBF; --yesil:#4A9B6F; --yesil-acik:#D4EDDA;
+  --kirmizi:#C0392B; --kirmizi-acik:#FADBD8; --yazi:#3D2314; --yazi-acik:#7A5C4F;
+  --golge:0 4px 20px rgba(107,58,42,0.12); --radius:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Nunito',sans-serif;background:var(--krem);color:var(--yazi);padding:0 0 60px;min-height:100vh;}
+
+/* HEADER */
+.menu-header{background:linear-gradient(135deg,var(--kahve) 0%,var(--kahve-acik) 100%);color:white;text-align:center;padding:28px 20px 24px;border-radius:0 0 26px 26px;box-shadow:0 6px 24px rgba(107,58,42,0.25);position:sticky;top:0;z-index:50;}
+.menu-header h1{font-family:'Playfair Display',serif;font-size:30px;font-weight:900;display:inline-flex;align-items:center;gap:10px;}
+.menu-header .alt{font-size:13px;opacity:0.8;margin-top:6px;font-weight:600;letter-spacing:0.5px;}
+.canli-rozet{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;padding:4px 14px;border-radius:20px;margin-top:12px;background:rgba(255,255,255,0.15);}
+.canli-nokta{width:8px;height:8px;border-radius:50%;background:#9aa0a6;display:inline-block;}
+.canli-rozet.bagli .canli-nokta{background:#7CF29B;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.35;}}
+
+/* ARAMA */
+.arama-wrap{max-width:680px;margin:18px auto 0;padding:0 16px;}
+.arama-kutu{position:relative;}
+.arama-kutu .ikon{position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:17px;color:var(--yazi-acik);}
+.arama-kutu input{width:100%;padding:13px 16px 13px 44px;border:2px solid #EDE0D4;border-radius:50px;font-size:15px;font-family:'Nunito',sans-serif;font-weight:600;color:var(--yazi);background:white;outline:none;box-shadow:var(--golge);}
+.arama-kutu input:focus{border-color:var(--sari);}
+
+/* KATEGORI SERIDI */
+.kat-serit{max-width:680px;margin:14px auto 0;padding:0 16px;display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.kat-serit::-webkit-scrollbar{display:none;}
+.kat-chip{flex:0 0 auto;padding:8px 18px;border:2px solid var(--kahve);background:transparent;color:var(--kahve);border-radius:50px;font-size:13px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer;white-space:nowrap;transition:all .2s;}
+.kat-chip.aktif{background:var(--kahve);color:white;}
+
+/* ICERIK */
+.menu-icerik{max-width:680px;margin:0 auto;padding:8px 16px;}
+.kategori-blok{margin-top:26px;scroll-margin-top:90px;}
+.kategori-baslik{font-family:'Playfair Display',serif;font-size:22px;font-weight:900;color:var(--kahve);display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:2px dashed #D4B896;margin-bottom:6px;}
+
+.urun-satir{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 6px;border-bottom:1px dashed #EDE0D4;transition:opacity .2s;}
+.urun-sol{display:flex;align-items:center;gap:10px;flex:1;min-width:0;}
+.urun-ad{font-size:16px;font-weight:700;color:var(--yazi);}
+.urun-fiyat{font-size:16px;font-weight:900;color:var(--kahve);white-space:nowrap;}
+.urun-fiyat .tl{font-size:13px;font-weight:800;margin-left:1px;}
+
+/* TUKENDI DURUMU */
+.urun-satir.tukendi{opacity:0.55;}
+.urun-satir.tukendi .urun-ad{text-decoration:line-through;color:var(--yazi-acik);}
+.urun-satir.tukendi .urun-fiyat{color:var(--yazi-acik);}
+.tukendi-etiket{display:none;font-size:10px;font-weight:900;color:var(--kirmizi);background:var(--kirmizi-acik);padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;flex-shrink:0;}
+.urun-satir.tukendi .tukendi-etiket{display:inline-block;}
+
+.bos-sonuc{text-align:center;padding:50px 20px;color:var(--yazi-acik);font-weight:700;display:none;}
+.footer-not{text-align:center;font-size:12px;color:#A08070;font-weight:600;padding:30px 20px 10px;}
+
+@media (max-width:480px){
+  .menu-header h1{font-size:26px;}
+  .urun-ad{font-size:15px;}
+}
+</style>
+</head>
+<body>
+
+<div class="menu-header">
+  <h1><span>☕</span> Ata Cafe</h1>
+  <div class="alt">Menü</div>
+  <div class="canli-rozet" id="canli-rozet"><span class="canli-nokta"></span><span id="canli-metin">Bağlanıyor...</span></div>
+</div>
+
+<div class="arama-wrap">
+  <div class="arama-kutu">
+    <span class="ikon">🔍</span>
+    <input type="text" id="arama" onkeyup="urunAra()" placeholder="Ürün ara... (Çay, Tost, Soda)">
+  </div>
+</div>
+
+<div class="kat-serit" id="kat-serit"></div>
+
+<div class="menu-icerik" id="menu-icerik"></div>
+<div class="bos-sonuc" id="bos-sonuc">😕 Aradığınız ürün bulunamadı.</div>
+
+<div class="footer-not">Fiyatlar ve stok durumu anlık güncellenir · Ata Cafe</div>
+
+<script>
+// ============================================
+// FIREBASE — Adisyon sistemiyle AYNI proje
+// ============================================
+const firebaseConfig = {
+  apiKey: "AIzaSyDsGZAjJZ3IjhVtuF4GcAmSfOS_u0pVpYk",
+  authDomain: "ata-cafe-70457.firebaseapp.com",
+  databaseURL: "https://ata-cafe-70457-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "ata-cafe-70457",
+  storageBucket: "ata-cafe-70457.firebasestorage.app",
+  messagingSenderId: "947405189257",
+  appId: "1:947405189257:web:c46ed7c625177d6d871658"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ============================================
+// idOlustur — Kasadaki fonksiyonla BİREBİR AYNI olmalı
+// (menuDurum anahtarları bununla üretiliyor)
+// ============================================
+function idOlustur(isim){
+  return isim.toLowerCase().replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]/g,'-');
+}
+
+// ============================================
+// MENÜ — Firebase 'menuVeri' tek kaynak. Aşağıdaki liste sadece
+// Firebase'e henüz ulaşılamadıysa gösterilecek YEDEK (fallback) menüdür.
+// Kasadaki "Menü Yönetimi"nden yapılan değişiklikler buraya canlı yansır.
+// ============================================
+let menu = [
+  { kat:"☕ Sıcaklar", urunler:[
+    {ad:"Çay",fiyat:25},{ad:"Fincan Çay",fiyat:50},
+    {ad:"Oralet Portakal",fiyat:25},{ad:"Oralet Kivi",fiyat:25},
+    {ad:"Oralet Tarçın",fiyat:25},{ad:"Oralet Muz",fiyat:25},
+    {ad:"Oralet Karadut",fiyat:25},{ad:"Oralet Nanelimon",fiyat:25},
+    {ad:"Oralet Kakao",fiyat:25},{ad:"Oralet Kuşburnu",fiyat:25},
+    {ad:"Türk Kahvesi",fiyat:80},{ad:"Sütlü Türk Kahvesi",fiyat:80},
+    {ad:"Menengiç Kahvesi",fiyat:80},{ad:"Dibek Kahvesi",fiyat:80},
+    {ad:"Damla Sakızlı Türk Kahvesi",fiyat:80},
+    {ad:"Nescafe",fiyat:100},{ad:"Sütlü Nescafe",fiyat:100},
+    {ad:"Filtre Kahve",fiyat:120},
+    {ad:"Bardak Salep",fiyat:40},{ad:"Bardak Nescafe",fiyat:40},
+    {ad:"Ihlamur",fiyat:120},{ad:"Ada Çayı",fiyat:120},{ad:"Yeşil Çay",fiyat:120},
+    {ad:"Salep",fiyat:100},{ad:"Sıcak Çikolata",fiyat:100},
+    {ad:"Sıcak Ballı Süt",fiyat:100},{ad:"Sıcak Süt",fiyat:100}
+  ]},
+  { kat:"🍳 Yiyecekler", urunler:[
+    {ad:"Sucuk Kaşarlı Tost",fiyat:120},{ad:"Sade Kaşarlı Tost",fiyat:120},
+    {ad:"Sade Sucuklu Tost",fiyat:120},
+    {ad:"Sucuk Kaşarlı Gözleme",fiyat:200},{ad:"Sade Kaşarlı Gözleme",fiyat:200},
+    {ad:"Sade Sucuklu Gözleme",fiyat:200},{ad:"Sade Patatesli Gözleme",fiyat:200},
+    {ad:"Patates Kaşarlı Gözleme",fiyat:200},{ad:"Gözleme (Full Karışık)",fiyat:220},
+    {ad:"Sucuk Ekmek",fiyat:90}
+  ]},
+  { kat:"🍮 Tatlılar & Atıştırmalık", urunler:[
+    {ad:"Tatlı Çeşitleri",fiyat:120},
+    {ad:"Tuzlu Fıstık",fiyat:90},{ad:"Karışık Çerez",fiyat:120},
+    {ad:"Çekirdek (Küçük)",fiyat:60},{ad:"Çekirdek (Büyük)",fiyat:120}
+  ]},
+  { kat:"🧊 Soğuklar", urunler:[
+    {ad:"Su",fiyat:25},{ad:"Ice Americano",fiyat:130},
+    {ad:"Ice Latte",fiyat:130},{ad:"Churchill",fiyat:120},
+    {ad:"Kola Turka",fiyat:90},{ad:"Limonata",fiyat:90},
+    {ad:"Uludağ Gazoz",fiyat:90},
+    {ad:"Ice Tea Şeftali",fiyat:90},{ad:"Ice Tea Limon",fiyat:90},{ad:"Ice Tea Mango",fiyat:90},
+    {ad:"Vişne Suyu",fiyat:90},{ad:"Şeftali Suyu",fiyat:90},
+    {ad:"Karışık Meyve Suyu",fiyat:90},
+    {ad:"Kutu Vişne",fiyat:50},{ad:"Kutu Şeftali",fiyat:50},
+    {ad:"Limonlu Soda",fiyat:50},{ad:"Elmalı Soda",fiyat:50},
+    {ad:"Narlı Soda",fiyat:50},{ad:"Karpuz Çilek Soda",fiyat:50},
+    {ad:"Sade Soda",fiyat:50},{ad:"Küçük Ayran",fiyat:50}
+  ]}
+];
+
+let stokDurumlari = {}; // menuDurum snapshot'ı
+
+// ============================================
+// MENÜYÜ ÇİZ
+// ============================================
+function menuyuCiz(){
+  const serit = document.getElementById('kat-serit');
+  const icerik = document.getElementById('menu-icerik');
+  serit.innerHTML = '';
+  icerik.innerHTML = '';
+
+  menu.forEach((blok, i)=>{
+    const blokId = 'kat-' + i;
+
+    // kategori chip
+    const chip = document.createElement('button');
+    chip.className = 'kat-chip' + (i===0?' aktif':'');
+    chip.textContent = blok.kat;
+    chip.onclick = ()=>{
+      document.querySelectorAll('.kat-chip').forEach(c=>c.classList.remove('aktif'));
+      chip.classList.add('aktif');
+      document.getElementById(blokId).scrollIntoView({behavior:'smooth'});
+    };
+    serit.appendChild(chip);
+
+    // kategori bloğu
+    const div = document.createElement('div');
+    div.className = 'kategori-blok';
+    div.id = blokId;
+    div.dataset.kat = blok.kat;
+    let html = `<div class="kategori-baslik">${blok.kat}</div>`;
+    blok.urunler.forEach(u=>{
+      const uid = idOlustur(u.ad);
+      html += `
+        <div class="urun-satir" data-uid="${uid}" data-ad="${u.ad.toLowerCase()}">
+          <div class="urun-sol">
+            <span class="urun-ad">${u.ad}</span>
+            <span class="tukendi-etiket">Tükendi</span>
+          </div>
+          <span class="urun-fiyat">${u.fiyat}<span class="tl">₺</span></span>
+        </div>`;
+    });
+    div.innerHTML = html;
+    icerik.appendChild(div);
+  });
+
+  stokUygula();
+}
+
+// ============================================
+// STOK DURUMUNU UYGULA (menuDurum/{uid} === false -> Tükendi)
+// ============================================
+function stokUygula(){
+  document.querySelectorAll('.urun-satir').forEach(satir=>{
+    const uid = satir.dataset.uid;
+    if(stokDurumlari[uid] === false){
+      satir.classList.add('tukendi');
+    }else{
+      satir.classList.remove('tukendi');
+    }
+  });
+}
+
+// ============================================
+// CANLI MENÜ — kasada "Menü Yönetimi"nden değişiklik olunca anında yansır
+// ============================================
+db.ref('menuVeri').on('value', (snap)=>{
+  const veri = snap.val();
+  if(veri){
+    // Firebase array bazen object döner -> normalize et
+    const katlar = Array.isArray(veri) ? veri : Object.values(veri).filter(x=>x);
+    menu = katlar.map(k=>({
+      kat: k.kat || 'Kategori',
+      urunler: (k.urunler ? (Array.isArray(k.urunler) ? k.urunler : Object.values(k.urunler).filter(x=>x)) : [])
+               .map(u=>({ ad:u.ad, fiyat:Number(u.fiyat)||0 }))
+    }));
+  }
+  menuyuCiz();
+  // Arama kutusu doluysa filtreyi koru
+  if(document.getElementById('arama').value) urunAra();
+});
+
+// ============================================
+// CANLI STOK — kasada stok değişince anında yansır
+// ============================================
+db.ref('menuDurum').on('value', (snap)=>{
+  stokDurumlari = snap.val() || {};
+  stokUygula();
+});
+
+// Bağlantı durumu rozetı
+db.ref('.info/connected').on('value', (snap)=>{
+  const rozet = document.getElementById('canli-rozet');
+  const metin = document.getElementById('canli-metin');
+  if(snap.val() === true){
+    roz
