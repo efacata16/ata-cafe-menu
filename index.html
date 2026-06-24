@@ -92,19 +92,12 @@ body{font-family:'Nunito',sans-serif;background:var(--krem);color:var(--yazi);pa
 <div class="footer-not">Fiyatlar ve stok durumu anlık güncellenir · Ata Cafe</div>
 
 <script>
-// ============================================
-// idOlustur — Kasadaki fonksiyonla BİREBİR AYNI olmalı
-// (menuDurum anahtarları bununla üretiliyor)
-// ============================================
+// idOlustur — kasadaki fonksiyonla BİREBİR AYNI olmalı
 function idOlustur(isim){
   return isim.toLowerCase().replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]/g,'-');
 }
 
-// ============================================
-// MENÜ — Firebase 'menuVeri' tek kaynak. Aşağıdaki liste sadece
-// Firebase'e henüz ulaşılamadıysa gösterilecek YEDEK (fallback) menüdür.
-// Kasadaki "Menü Yönetimi"nden yapılan değişiklikler buraya canlı yansır.
-// ============================================
+// YEDEK menü (Firebase'e ulaşılamazsa gösterilir). Canlı veri menuVeri'den gelir.
 let menu = [
   { kat:"☕ Sıcaklar", urunler:[
     {ad:"Çay",fiyat:25},{ad:"Fincan Çay",fiyat:50},
@@ -150,76 +143,60 @@ let menu = [
   ]}
 ];
 
-let stokDurumlari = {}; // menuDurum snapshot'ı
+let stokDurumlari = {};
 
-// ============================================
-// MENÜYÜ ÇİZ
-// ============================================
 function menuyuCiz(){
   const serit = document.getElementById('kat-serit');
   const icerik = document.getElementById('menu-icerik');
   serit.innerHTML = '';
   icerik.innerHTML = '';
-
-  menu.forEach((blok, i)=>{
+  menu.forEach(function(blok, i){
     const blokId = 'kat-' + i;
-
     const chip = document.createElement('button');
     chip.className = 'kat-chip' + (i===0?' aktif':'');
     chip.textContent = blok.kat;
-    chip.onclick = ()=>{
-      document.querySelectorAll('.kat-chip').forEach(c=>c.classList.remove('aktif'));
+    chip.onclick = function(){
+      document.querySelectorAll('.kat-chip').forEach(function(c){ c.classList.remove('aktif'); });
       chip.classList.add('aktif');
       document.getElementById(blokId).scrollIntoView({behavior:'smooth'});
     };
     serit.appendChild(chip);
-
     const div = document.createElement('div');
     div.className = 'kategori-blok';
     div.id = blokId;
     div.dataset.kat = blok.kat;
-    let html = `<div class="kategori-baslik">${blok.kat}</div>`;
-    (blok.urunler||[]).forEach(u=>{
+    let html = '<div class="kategori-baslik">' + blok.kat + '</div>';
+    (blok.urunler||[]).forEach(function(u){
       const uid = idOlustur(u.ad);
-      html += `
-        <div class="urun-satir" data-uid="${uid}" data-ad="${(u.ad||'').toLowerCase()}">
-          <div class="urun-sol">
-            <span class="urun-ad">${u.ad}</span>
-            <span class="tukendi-etiket">Tükendi</span>
-          </div>
-          <span class="urun-fiyat">${u.fiyat}<span class="tl">₺</span></span>
-        </div>`;
+      const adLower = (u.ad||'').toLowerCase();
+      html += '<div class="urun-satir" data-uid="' + uid + '" data-ad="' + adLower + '">'
+            +   '<div class="urun-sol">'
+            +     '<span class="urun-ad">' + u.ad + '</span>'
+            +     '<span class="tukendi-etiket">Tükendi</span>'
+            +   '</div>'
+            +   '<span class="urun-fiyat">' + u.fiyat + '<span class="tl">₺</span></span>'
+            + '</div>';
     });
     div.innerHTML = html;
     icerik.appendChild(div);
   });
-
   stokUygula();
 }
 
-// ============================================
-// STOK DURUMUNU UYGULA (menuDurum/{uid} === false -> Tükendi)
-// ============================================
 function stokUygula(){
-  document.querySelectorAll('.urun-satir').forEach(satir=>{
+  document.querySelectorAll('.urun-satir').forEach(function(satir){
     const uid = satir.dataset.uid;
-    if(stokDurumlari[uid] === false){
-      satir.classList.add('tukendi');
-    }else{
-      satir.classList.remove('tukendi');
-    }
+    if(stokDurumlari[uid] === false){ satir.classList.add('tukendi'); }
+    else { satir.classList.remove('tukendi'); }
   });
 }
 
-// ============================================
-// ARAMA
-// ============================================
 function urunAra(){
   const q = document.getElementById('arama').value.toLowerCase().trim();
   let toplamGorunen = 0;
-  document.querySelectorAll('.kategori-blok').forEach(blok=>{
+  document.querySelectorAll('.kategori-blok').forEach(function(blok){
     let katGorunen = 0;
-    blok.querySelectorAll('.urun-satir').forEach(satir=>{
+    blok.querySelectorAll('.urun-satir').forEach(function(satir){
       const eslesti = !q || satir.dataset.ad.includes(q);
       satir.style.display = eslesti ? 'flex' : 'none';
       if(eslesti){ katGorunen++; toplamGorunen++; }
@@ -232,19 +209,15 @@ function urunAra(){
 function rozetGuncelle(durum, metinYazi){
   const rozet = document.getElementById('canli-rozet');
   const metin = document.getElementById('canli-metin');
-  if(durum) rozet.classList.add('bagli'); else rozet.classList.remove('bagli');
+  if(durum){ rozet.classList.add('bagli'); } else { rozet.classList.remove('bagli'); }
   metin.textContent = metinYazi;
 }
 
-// ============================================
-// ÖNCE menüyü çiz — Firebase'e ulaşılamasa bile müşteri menüyü görür
-// ============================================
+// ÖNCE menüyü çiz — Firebase olmasa bile müşteri menüyü görür
 menuyuCiz();
 
-// ============================================
-// FIREBASE — canlı menü + stok. Hata olsa bile menü çalışmaya devam eder.
-// ============================================
-const firebaseConfig = {
+// FIREBASE — canlı menü + stok
+var firebaseConfig = {
   apiKey: "AIzaSyDsGZAjJZ3IjhVtuF4GcAmSfOS_u0pVpYk",
   authDomain: "ata-cafe-70457.firebaseapp.com",
   databaseURL: "https://ata-cafe-70457-default-rtdb.europe-west1.firebasedatabase.app",
@@ -256,6 +229,44 @@ const firebaseConfig = {
 
 try {
   firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+  var db = firebase.database();
 
-  // Canlı menü (kasadaki Menü Yönetimi değişiklikleri)
+  db.ref('menuVeri').on('value', function(snap){
+    var veri = snap.val();
+    if(veri){
+      var katlar = Array.isArray(veri) ? veri : Object.values(veri).filter(function(x){ return x; });
+      if(katlar.length){
+        menu = katlar.map(function(k){
+          return {
+            kat: k.kat || 'Kategori',
+            urunler: (k.urunler ? (Array.isArray(k.urunler) ? k.urunler : Object.values(k.urunler).filter(function(x){ return x; })) : [])
+                     .map(function(u){ return { ad:u.ad, fiyat:Number(u.fiyat)||0 }; })
+          };
+        });
+        menuyuCiz();
+        if(document.getElementById('arama').value){ urunAra(); }
+      }
+    }
+  }, function(err){
+    console.error('menuVeri okunamadi (yedek menu):', err.message);
+    rozetGuncelle(false, 'Yedek menü');
+  });
+
+  db.ref('menuDurum').on('value', function(snap){
+    stokDurumlari = snap.val() || {};
+    stokUygula();
+  }, function(err){
+    console.error('menuDurum okunamadi:', err.message);
+  });
+
+  db.ref('.info/connected').on('value', function(snap){
+    if(snap.val() === true){ rozetGuncelle(true, 'Canlı menü'); }
+    else { rozetGuncelle(false, 'Bağlanıyor...'); }
+  });
+} catch(e) {
+  console.error('Firebase baslatilamadi — yedek menu gosteriliyor:', e);
+  rozetGuncelle(false, 'Yedek menü');
+}
+</script>
+</body>
+</html>
